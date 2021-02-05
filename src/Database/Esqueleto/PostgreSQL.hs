@@ -90,8 +90,14 @@ unsafeSqlAggregateFunction name mode args orderByClauses = ERaw Never $ \info ->
             case orderByClauses of
                 [] -> ""
                 (_:_) -> " "
+        valueToFunctionArgParens v =
+            case v of
+                ERaw p f             -> first (parensM p) (f info)
+                EAliasedValue i _    -> aliasedValueIdentToRawSql i info
+                EValueReference i i' -> valueReferenceToRawSql i i' info
+                ECompositeKey _      -> throw (CompositeKeyErr SqlFunctionError)
         (argsTLB, argsVals) =
-            uncommas' $ map (\(ERaw _ f) -> f info) $ toArgList args
+            uncommas' $ map valueToFunctionArgParens $ toArgList args
         aggMode =
             case mode of
                 AggModeAll -> ""
